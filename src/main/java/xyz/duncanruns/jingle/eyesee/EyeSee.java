@@ -55,6 +55,8 @@ public class EyeSee {
 
         PluginEvents.SHOW_PROJECTOR.register(EyeSee::showProjector);
         PluginEvents.DUMP_PROJECTOR.register(EyeSee::dumpProjector);
+        PluginEvents.SHOW_THIN_PROJECTOR.register(EyeSee::showThinProjector);
+        PluginEvents.DUMP_THIN_PROJECTOR.register(EyeSee::dumpProjector);
         PluginEvents.STOP.register(EyeSee::stop);
 
         Jingle.log(Level.INFO, "EyeSee Plugin Initialized");
@@ -64,6 +66,11 @@ public class EyeSee {
         EXECUTOR.shutdown();
         if (eyeSeeFrame != null) eyeSeeFrame.dispose();
         if (options != null) if (!options.trySave()) Jingle.log(Level.ERROR, "Failed to save EyeSee Options!");
+    }
+
+    private static void showThinProjector() {
+        if (!isEnabled()) return;
+        eyeSeeFrame.showThinEyeSee(getProjectorRect());
     }
 
     private static void showProjector() {

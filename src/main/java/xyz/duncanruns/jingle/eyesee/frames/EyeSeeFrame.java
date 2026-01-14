@@ -30,6 +30,7 @@ public class EyeSeeFrame extends JFrame {
 
     private final WinDef.HWND eyeSeeHwnd;
     private boolean currentlyShowing = false;
+    private boolean currentlyShowingThin = false;
     private Rectangle bounds = new Rectangle();
 
     private Dimension prevWindowSize = null;
@@ -61,12 +62,12 @@ public class EyeSeeFrame extends JFrame {
     }
 
     private void tick() {
-        if (!currentlyShowing) return;
+        if (!currentlyShowing && !currentlyShowingThin) return;
         if (!Jingle.getMainInstance().isPresent()) return;
         WinDef.HWND hwnd = Jingle.getMainInstance().get().hwnd;
 
         // get snapshot of MC window
-        Rectangle rectangle = getYoinkArea(hwnd);
+        Rectangle rectangle = currentlyShowing ? getYoinkArea(hwnd) : getThinYoinkArea(hwnd);
         WinDef.HDC sourceHDC = User32.INSTANCE.GetDC(hwnd);
         WinDef.HDC eyeSeeHDC = User32.INSTANCE.GetDC(eyeSeeHwnd);
 
@@ -131,6 +132,32 @@ public class EyeSeeFrame extends JFrame {
 //        User32.INSTANCE.BringWindowToTop(this.overlay.hwnd);
     }
 
+    public void showThinEyeSee(Rectangle rect) {
+        if (!Jingle.getMainInstance().isPresent()) return;
+        Jingle.log(Level.DEBUG, "Showing EyeSee...");
+
+        currentlyShowingThin = true;
+        this.setFocusableWindowState(false);
+        this.setVisible(true);
+        this.overlay.setFocusableWindowState(false);
+        this.overlay.setVisible(true);
+        bounds = rect;
+
+        // move eyesee window f
+        User32.INSTANCE.SetWindowPos(
+                eyeSeeHwnd,
+                new WinDef.HWND(new Pointer(0)),
+                rect.x,
+                rect.y,
+                rect.width,
+                rect.height,
+                SHOW_FLAGS
+        );
+//        this.overlay.setSize(projectorWidth, projectorHeight);
+//        this.overlay.setLocation(projectorXPos, projectorYPos);
+//        User32.INSTANCE.BringWindowToTop(this.overlay.hwnd);
+    }
+
     public void hideEyeSee() {
         Jingle.log(Level.DEBUG, "Hiding EyeSee...");
         currentlyShowing = false;
@@ -182,6 +209,20 @@ public class EyeSeeFrame extends JFrame {
         int width = 60;
         int height = 580;
         return new Rectangle((int) rectangle.getCenterX() - width / 2, (int) rectangle.getCenterY() - height / 2, width, height);
+    }
+
+    private Rectangle getThinYoinkArea(WinDef.HWND hwnd) {
+        Rectangle rectangle;
+        if (hwnd == null) {
+            rectangle = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+        } else {
+            WinDef.RECT rect = new WinDef.RECT();
+            User32.INSTANCE.GetClientRect(hwnd, rect);
+            rectangle = new Rectangle(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+        }
+        // TODO: figure these out better
+        int height = 580;
+        return new Rectangle(rectangle.x, rectangle.y + rectangle.height - height, rectangle.width, height);
     }
 
     @Override
